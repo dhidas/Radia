@@ -17,10 +17,11 @@ LIB_DIR=	$(RAD_CPP_DIR)/../ext_lib
 
 SH_INCLUDE=	-I$(SH_SRC_GEN_MATH_DIR) -I$(SH_SRC_PARSE_DIR)
 
-MATHVERSION=	10.2
+MATHVERSION=	12.0
 SYS=		Linux-x86-64
 
-ML_ORIG_DIR=	/usr/local/Wolfram/Mathematica/${MATHVERSION}/SystemFiles/Links/MathLink/DeveloperKit/${SYS}/CompilerAdditions
+#ML_ORIG_DIR=	/usr/local/Wolfram/Mathematica/${MATHVERSION}/SystemFiles/Links/MathLink/DeveloperKit/${SYS}/CompilerAdditions
+ML_ORIG_DIR=	/opt/apps/Mathematica/12.0/SystemFiles/Links/MathLink/DeveloperKit/Linux-x86-64/CompilerAdditions/
 #MMA_LIB_DIR=	/usr/local/Wolfram/Mathematica/${MATHVERSION}/SystemFiles/Libraries/${SYS}
 MMA_LIB_DIR=	$(ML_ORIG_DIR)
 #MLINCLUDEDIR=	$(ML_ORIG_DIR)

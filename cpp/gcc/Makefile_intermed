@@ -1,4 +1,4 @@
-MATHVERSION=	10.2
+MATHVERSION=	12.0
 SYS=		Linux-x86-64
 
 RAD_CPP_DIR=	../
@@ -6,7 +6,7 @@ RAD_SRC_DIR=	$(RAD_CPP_DIR)/src
 RAD_SRC_CORE_DIR=	$(RAD_SRC_DIR)/core
 RAD_SRC_TRI_DIR=	$(RAD_SRC_DIR)/ext/triangle
 SH_SRC_PARSE_DIR=	$(RAD_SRC_DIR)/ext/auxparse
-SH_SRC_GEN_MATH_DIR=	$(SRW_SRC_DIR)/ext/genmath
+SH_SRC_GEN_MATH_DIR=	$(RAD_SRC_DIR)/ext/genmath
 RAD_SRC_ML_DIR=	$(RAD_SRC_DIR)/clients/mathlink
 
 #SHDIR=		$(SOFTDEVDIR)/Shared
@@ -19,7 +19,8 @@ LIB_DIR=	$(RAD_CPP_DIR)/../ext_lib
 
 SH_INCLUDE=	-I$(SH_SRC_GEN_MATH_DIR) -I$(SH_SRC_PARSE_DIR)
 
-ML_ORIG_DIR=	/usr/local/Wolfram/Mathematica/${MATHVERSION}/SystemFiles/Links/MathLink/DeveloperKit/${SYS}/CompilerAdditions
+#ML_ORIG_DIR=	/usr/local/Wolfram/Mathematica/${MATHVERSION}/SystemFiles/Links/MathLink/DeveloperKit/${SYS}/CompilerAdditions
+ML_ORIG_DIR=	/opt/apps/Mathematica/12.0/SystemFiles/Links/MathLink/DeveloperKit/Linux-x86-64/CompilerAdditions/
 #MMA_LIB_DIR=	/usr/local/Wolfram/Mathematica/${MATHVERSION}/SystemFiles/Libraries/${SYS}
 MMA_LIB_DIR=	$(ML_ORIG_DIR)
 #MLINCLUDEDIR=	$(ML_ORIG_DIR)
@@ -99,7 +100,7 @@ radintrc.o:	$(RAD_SRC_CORE_DIR)/radintrc.cpp
 		cc $(CFLAGS) -c $(RAD_SRC_CORE_DIR)/radintrc.cpp -O3 $(RAD_SRC_DEF) $(SH_INCLUDE)
 
 radiobuf.o:	$(RAD_SRC_CORE_DIR)/radiobuf.cpp 
-		cc $(CFLAGS) -c $(RAD_SRC_CORE_DIR)/radiobuf.cpp -O3 $(RAD_SRC_DEF)
+		cc $(CFLAGS) -c $(RAD_SRC_CORE_DIR)/radiobuf.cpp -O3 $(RAD_SRC_DEF) $(SH_INCLUDE)
 
 radmamet.o:	$(RAD_SRC_CORE_DIR)/radmamet.cpp 
 		cc $(CFLAGS) -c $(RAD_SRC_CORE_DIR)/radmamet.cpp -O3 $(RAD_SRC_DEF) $(SH_INCLUDE)
@@ -153,7 +154,7 @@ auxparse.o:	$(SH_SRC_PARSE_DIR)/auxparse.cpp
 		cc $(CFLAGS) -c $(SH_SRC_PARSE_DIR)/auxparse.cpp -O3 $(RAD_SRC_DEF) 
 
 clean:
-		@rm $(OBJS) *~ 
+		@rm -f $(OBJS)
 
 clobber:
-		@rm $(OBJS) $(PRG) radia_tm_linux.c *~ 
+		@rm -f $(OBJS) $(PRG) radia_tm_linux.c 
