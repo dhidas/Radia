@@ -54,7 +54,7 @@ LDFLAGS=	-L$(LIB_DIR) -lm -lfftw -lpthread -lrt -ldl -luuid
 MODE ?= 0
 
 ifeq ($(MODE), mpi)
-LIBCFLAGS+= -I$(MPI_INCLUDE_DIR_01) -I$(MPI_INCLUDE_DIR_02) -D_WITH_MPI
+LIBCFLAGS+= -I$(MPI_INCLUDE_DIR_01) -I$(MPI_INCLUDE_DIR_02) -I$(MPI_INCLUDE) -D_WITH_MPI
 else
 ifeq ($(MODE), mpi_nersc)
 LIBCFLAGS += -D_WITH_MPI

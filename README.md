@@ -2,18 +2,16 @@
 3D Magnetostatics Computer Code
 
 
-## Building on apcpu
+## Building on cluster
 ```
 make clean
-make all
+MODE=mpi make all
 ```
 
 ### Python
 ```
-module load python/3.7
-make
 cd cpp/py
-python setup.py install --user # remove the --user for system install
+MODE=mpi python setup.py install --user
 ```
 
 ### Mathlink (mathematica)
