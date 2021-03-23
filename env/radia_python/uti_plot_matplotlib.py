@@ -299,13 +299,24 @@ class Backend(object):
                 ar_i_1 = ar_i[1]
                 len_ar_i_0 = len(ar_i_0)
                 len_ar_i_1 = len(ar_i_1)
-                if((len_ar_i_1 == 3) and (len_ar_i_0 == 3)): 
-                    if(ar_i_1[2] == 3): #assuming [[y1,y2,y3],[x_min_i,x_max_i,nx_i]]
+                #if((len_ar_i_1 == 3) and (len_ar_i_0 == 3)): 
+                #    if(ar_i_1[2] == 3): #assuming [[y1,y2,y3],[x_min_i,x_max_i,nx_i]]
+                #        ary = ar_i_0
+                #        arx = np.linspace(ar_i_1[0], ar_i_1[1], ar_i_1[2])
+                #    else: #assuming [[y1,y2,y3],[x1,x2,x3]]
+                #        ary = ar_i_0
+                #        arx = ar_i_1
+                if(len_ar_i_1 == 3): #OC21022019
+                    if(len_ar_i_0 == 3): 
+                        if(ar_i_1[2] == 3): #assuming [[y1,y2,y3],[x_min_i,x_max_i,nx_i]]
+                            ary = ar_i_0
+                            arx = np.linspace(ar_i_1[0], ar_i_1[1], ar_i_1[2])
+                        else: #assuming [[y1,y2,y3],[x1,x2,x3]]
+                            ary = ar_i_0
+                            arx = ar_i_1
+                    elif(len_ar_i_0 == ar_i_1[2]): #assuming [[y1,y2,y3,y4,...],[x_min_i,x_max_i,nx_i]]
                         ary = ar_i_0
                         arx = np.linspace(ar_i_1[0], ar_i_1[1], ar_i_1[2])
-                    else: #assuming [[y1,y2,y3],[x1,x2,x3]]
-                        ary = ar_i_0
-                        arx = ar_i_1
                     
                 elif((len_ar_i_1 == 2) and (len_ar_i_0 == 2)): #assuming [[x1,y1],[x2,y2]]
                     arx = [ar_i_0[0],ar_i_1[0]]
@@ -335,33 +346,74 @@ class Backend(object):
         ax.set_xlabel(labels[0])
         ax.set_ylabel(labels[1])
         if(len(labels) > 2): ax.set_title(labels[2])
-                    
+
     def _plot_2D(self, ar2d, x_range, y_range, labels, fig, typ=111):
-        totLen = int(x_range[2]*y_range[2])
-        lenAr2d = len(ar2d)
-        if lenAr2d > totLen: ar2d = np.array(ar2d[0:totLen])
-        elif lenAr2d < totLen:
-            auxAr = array('d', [0]*lenAr2d)
-            for i in range(lenAr2d): auxAr[i] = ar2d[i]
-            ar2d = np.array(auxAr)
 
-        #if isinstance(ar2d,(list,array)): ar2d = np.array(ar2d).reshape(x_range[2],y_range[2])
-        if isinstance(ar2d,(list,array)): ar2d = np.array(ar2d)
-        ar2d = ar2d.reshape(y_range[2],x_range[2])
+        #totLen = int(x_range[2]*y_range[2])
+        #lenAr2d = len(ar2d)
+        #if lenAr2d > totLen: ar2d = np.array(ar2d[0:totLen])
+        #elif lenAr2d < totLen:
+        #    auxAr = array('d', [0]*lenAr2d)
+        #    for i in range(lenAr2d): auxAr[i] = ar2d[i]
+        #    ar2d = np.array(auxAr)
 
-        x = np.linspace(x_range[0],x_range[1],x_range[2])
-        y = np.linspace(y_range[0],y_range[1],y_range[2])
+        #if isinstance(ar2d,(list,array)): ar2d = np.array(ar2d)
+        #ar2d = ar2d.reshape(y_range[2],x_range[2])
+
+        isDataAr = False  #OC30052020
+        if isinstance(ar2d, (list, array)):
+            isFlat = True
+            if isinstance(ar2d[0], (list, array)): isFlat = False
+
+            if((x_range is None) or (y_range is None)):
+                if isFlat: raise Exception('Mesh / grid description for 2D plot is not provided')
+                if x_range is None:
+                    nx = len(ar2d[0])
+                    x_range = [0, nx - 1, nx]
+                if y_range is None:
+                    ny = len(ar2d)
+                    y_range = [0, ny - 1, ny]
+
+            if isFlat:
+                totLen = int(x_range[2]*y_range[2])
+                lenAr2d = len(ar2d)
+                if lenAr2d > totLen: ar2d = np.array(ar2d[0:totLen])
+                elif lenAr2d < totLen:
+                    auxAr = array('d', [0]*lenAr2d)
+                    for i in range(lenAr2d): auxAr[i] = ar2d[i]
+                    ar2d = np.array(auxAr)
+            
+            ar2d = np.array(ar2d)
+            ar2d = ar2d.reshape(y_range[2], x_range[2])
+            isDataAr = True
+        else: #Perhaps this is not necessary? Image will be displayed in standard way then (with pixel row number starting from top)
+            nx = 0; ny = 0
+            if(x_range is None):
+                nx, ny = ar2d.size
+                x_range = [0, nx - 1, nx]
+            if(y_range is None):
+                if(ny == 0): nx, ny = ar2d.size
+                y_range = [0, ny - 1, ny]
+
         ax = fig.add_subplot(typ)
-        #ax.pcolormesh(x,y,ar2d.T,cmap=_pl.cm.Greys_r)
-        #ax.pcolormesh(x,y,ar2d,cmap=_pl.cm.Greys_r)
-        ax.pcolormesh(x,y,ar2d,cmap=self._pl.cm.Greys_r) #OC150814
+           
+        #x = np.linspace(x_range[0],x_range[1],x_range[2])
+        #y = np.linspace(y_range[0],y_range[1],y_range[2])
+        x = np.linspace(x_range[0],x_range[1],x_range[2]) if x_range is not None else None #OC30052020
+        y = np.linspace(y_range[0],y_range[1],y_range[2]) if y_range is not None else None 
         
-        ax.set_xlim(x[0],x[-1])
-        ax.set_ylim(y[0],y[-1])
+        #ax.pcolormesh(x,y,ar2d,cmap=self._pl.cm.Greys_r) #OC150814
+        if isDataAr: ax.pcolormesh(x, y, ar2d, cmap=self._pl.cm.Greys_r) #OC30052020
+        else: ax.imshow(ar2d, cmap=self._pl.cm.Greys_r) #OC30052020 (assuming PIL.Image)
+        
+        #ax.set_xlim(x[0],x[-1])
+        #ax.set_ylim(y[0],y[-1])
+        if x is not None: ax.set_xlim(x[0],x[-1]) #OC30052020
+        if y is not None: ax.set_ylim(y[0],y[-1])
+        
         ax.set_xlabel(labels[0])
         ax.set_ylabel(labels[1])
-        if(len(labels) > 2):
-            ax.set_title(labels[2])
+        if(len(labels) > 2): ax.set_title(labels[2])
 
     def __mode_T(self, data, allrange, _ar_labels, _ar_units, _ec=0, _xc=0, _yc=0):
         #allrange, units = _rescale_range(allrange)
@@ -686,9 +738,12 @@ class Backend(object):
         import matplotlib.pyplot
         pl = matplotlib.pyplot
         try:
-            pl.figure(figsize=(0,0))
+            pl.figure(figsize=(1,1)) #OC08032020 (the line below throws exception with ~recent matplotlib)
+            #pl.figure(figsize=(0,0))
             pl.close('all')
         except:
+        #except Exception as e:
+            #print(str(e))
             old = backend
             (backend, fname_format) = self._default_file_backend(fname_format)
             pl.switch_backend(backend)

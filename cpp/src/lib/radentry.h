@@ -179,7 +179,7 @@ Creates a uniformly magnetized volume obtained by rotation of a planar convex po
 The slices are assumed to be convex planar polygons parallel to the XY plane.
 @param n [out] reference number of the object created
 @param FlatVert [in] flat array of x and y coordinates (x11, y11, x12, y12,..., x21, y21, x22, y22,...) of vertex points of the slices (planar polygons)
-@param SlicesLen [in] array of integer numbers equal to the numbers of vertex points in each slice; the order of the slices is the same as in the FlatVert array (the length of the FlatVert array is twice the sum of elements of the SlicesLen array) 
+@param SlicesLen [in] array of integer numbers specifying numbers of vertex points in each slice; the order of the slices is the same as in the FlatVert array (the length of the FlatVert array is twice the sum of elements of the SlicesLen array) 
 @param Attitudes [in] array of vertical coordinates (or attitudes) of the slices, in the ascending order (which is the same as for the SlicesLen array)
 @param ns [in] number of slices (or the length of the Attitudes and SlicesLen arrays)
 @param M [in] array of 3 cartesian coordinates of the magnetization vector inside the whole block
@@ -295,6 +295,21 @@ The line conductor is defined by sequence of points in 3D space.
 @author O.C.
 */ 
 EXP int CALL RadObjFlmCur(int* n, double* FlatPts, int np, double i);
+
+/** Attempts to create a set of current-carrying convex polyhedron objects by applying a generalized extrusion to the initial planar convex polygon.
+@param n [out] reference number of the object created
+@param FlatVert [in] flat array of x and y coordinates (x1, y1, x2, y2,...) of vertex points of the base planar polygon
+@param nv [in] number of vertex points of the 2D polygon (the length of the FlatVert array is 2*nv)
+
+@param SlicesLen [in] array of integer numbers equal to the numbers of vertex points in each slice; the order of the slices is the same as in the FlatVert array (the length of the FlatVert array is twice the sum of elements of the SlicesLen array)
+@param Attitudes [in] array of vertical coordinates (or attitudes) of the slices, in the ascending order (which is the same as for the SlicesLen array)
+@param ns [in] number of slices (or the length of the Attitudes and SlicesLen arrays)
+@param M [in] array of 3 cartesian coordinates of the magnetization vector inside the whole block
+@return integer error code (0 : no error, >0 : error number, <0 : warning number)
+@author O.C.
+*/
+//EXP int CALL RadObjMltExtPgnCur(int* n, double* FlatVert, int nv, 
+//	double* FlatVert, int* SlicesLen, double* Attitudes, int ns, double* M,      double z, char a, double i, char* opt);
 
 /** Scales current (density) in a 3D object by multiplying it by a constant.
 @param n [out] reference number of the object with current (density) to be scaled
@@ -1053,6 +1068,19 @@ EXP int CALL RadUtiDataGet(char* pcData, const char typeData[3], long key=0); //
 @author P.E., O.C.
 */ 
 EXP int CALL RadUtiVer(double* d);
+
+/** initializes or finalizes the Message Passing Inteface (MPI) for parallel calculations and returns list of basic MPI process parameters (in the case of initialization): rank of a process and total number of processes.
+@param arPar [out] array of basic MPI parameters: rank of a process [0] and total number of processes [1]
+@param OnOrOff [in] string containing either "on" or "off"
+@param arData [in] array of data to be shared among different processes
+@param pnData [in/out] pointer to length of array of data to be shared among different processes (for processes receiving data this param will be set upon function return)
+@param pRankFrom [in/out] pointer to rank of process to take data (to be shered) from (the default value means take the from process with rank 0)
+@param rankTo [in/out] pointer to rank of process(es) to send the data to (the default value means sharing the data anomg all processes)
+@return integer error code (0 : no error, >0 : error number, <0 : warning number)
+@author O.C.
+*/ 
+EXP int CALL RadUtiMPI(int* arPar, char* OnOrOff, double* arData=0, long* pnData=0, long* pRankFrom=0, long* pRankTo=0); //OC19032020
+//EXP int CALL RadUtiMPI(int* arPar, char* OnOrOff);
 
 EXP int CALL RadUtiYeldFuncSet(int (*pExtFunc)());
 

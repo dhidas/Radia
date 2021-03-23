@@ -28,6 +28,10 @@
 #include <math.h>
 #include <string.h>
 
+#ifdef _WITH_MPI
+#include <mpi.h>
+#endif
+
 //-------------------------------------------------------------------------
 
 extern radTConvergRepair& radCR;
@@ -2233,7 +2237,7 @@ int radTApplication::SetPlaneSym(double* PoiOnPlane, long lenPoiOnPlane, double*
 	}
 	catch(...)
 	{
-		Initialize(); return 0;
+Initialize(); return 0;
 	}
 }
 
@@ -2243,11 +2247,11 @@ int radTApplication::SetFieldInversion()
 {
 	try
 	{
-		TVector3d St0(1.,0.,0.), St1(0.,1.,0.), St2(0.,0.,1.), ZeroVect(0.,0.,0.);
+		TVector3d St0(1., 0., 0.), St1(0., 1., 0.), St2(0., 0., 1.), ZeroVect(0., 0., 0.);
 		TMatrix3d E(St0, St1, St2);
 
 		radTrans* TransPtr = new radTrans(E, E, ZeroVect, 1., -1., 4); // ID_No = 4
-		if(TransPtr == 0) { Send.ErrorMessage("Radia::Error900"); return 0;}
+		if(TransPtr == 0) { Send.ErrorMessage("Radia::Error900"); return 0; }
 		radThg hg(TransPtr);
 		int ElemKey = AddElementToContainer(hg);
 		if(SendingIsRequired) Send.Int(ElemKey);
@@ -2268,11 +2272,11 @@ int radTApplication::CombineTransformations(int ThisElemKey, int AnotherElemKey,
 		radThg hg;
 		if(!ValidateElemKey(ThisElemKey, hg)) return 0;
 		radTrans* ThisTransPtr = Cast.TransCast(hg.rep);
-		if(ThisTransPtr==0) { Send.ErrorMessage("Radia::Error006"); return 0;}
+		if(ThisTransPtr==0) { Send.ErrorMessage("Radia::Error006"); return 0; }
 
 		if(!ValidateElemKey(AnotherElemKey, hg)) return 0;
 		radTrans* AnotherTransPtr = Cast.TransCast(hg.rep);
-		if(AnotherTransPtr==0) { Send.ErrorMessage("Radia::Error006"); return 0;}
+		if(AnotherTransPtr==0) { Send.ErrorMessage("Radia::Error006"); return 0; }
 
 		if(L_or_R == 'L') *ThisTransPtr = Product(*AnotherTransPtr, *ThisTransPtr);
 		else if(L_or_R == 'R') *ThisTransPtr = Product(*ThisTransPtr, *AnotherTransPtr);
@@ -2294,11 +2298,11 @@ int radTApplication::ApplySymmetry(int g3dElemKey, int TransElemKey, int Multipl
 	{
 		radThg hg;
 		if(!ValidateElemKey(g3dElemKey, hg)) return 0;
-		radTg3d* g3dPtr = Cast.g3dCast(hg.rep); 
-		if(g3dPtr==0) { Send.ErrorMessage("Radia::Error003"); return 0;}
+		radTg3d* g3dPtr = Cast.g3dCast(hg.rep);
+		if(g3dPtr==0) { Send.ErrorMessage("Radia::Error003"); return 0; }
 
 		if(!ValidateElemKey(TransElemKey, hg)) return 0;
-		if(Cast.TransCast(hg.rep)==0) { Send.ErrorMessage("Radia::Error006"); return 0;}
+		if(Cast.TransCast(hg.rep)==0) { Send.ErrorMessage("Radia::Error006"); return 0; }
 		g3dPtr->AddTransform(Multiplicity, hg);
 		if(SendingIsRequired) Send.Int(g3dElemKey);
 		return g3dElemKey;
@@ -2307,6 +2311,180 @@ int radTApplication::ApplySymmetry(int g3dElemKey, int TransElemKey, int Multipl
 	{
 		Initialize(); return 0;
 	}
+}
+
+//-------------------------------------------------------------------------
+
+int radTApplication::ProcMPI(const char* sCommand, double* arData, long* pnData, long* pRankFrom, long* pRankTo) //OC29082020
+//int radTApplication::ProcMPI(const char* OnOrOff, double* arData, long* pnData, long* pRankFrom, long* pRankTo) //OC19032020
+//int radTApplication::ProcMPI(const char* OnOrOff)
+{
+	//int arParMPI[] = {-1,0};
+
+#ifdef _WITH_MPI
+
+	bool SwitchOn = false;
+	bool DoInit = true; //OC19122020
+	bool Share = false;
+	bool Barrier = false; //OC29082020
+	//char SwitchOn;
+	if((!strcmp(sCommand, "on")) || (!strcmp(sCommand, "On")) || (!strcmp(sCommand, "ON"))) SwitchOn = true; //1;
+	else if((!strcmp(sCommand, "in")) || (!strcmp(sCommand, "In")) || (!strcmp(sCommand, "IN"))) //OC19122020
+	{
+		SwitchOn = true; DoInit = false;
+	}
+	else if((!strcmp(sCommand, "off")) || (!strcmp(sCommand, "Off")) || (!strcmp(sCommand, "OFF"))) SwitchOn = false; //0;
+	else if((!strcmp(sCommand, "share")) || (!strcmp(sCommand, "Share")) || (!strcmp(sCommand, "SHARE"))) Share = true; //OC19032020
+	else if((!strcmp(sCommand, "barrier")) || (!strcmp(sCommand, "Barrier")) || (!strcmp(sCommand, "BARRIER"))) Barrier = true; //OC29082020
+	//if((!strcmp(OnOrOff, "on")) || (!strcmp(OnOrOff, "On")) || (!strcmp(OnOrOff, "ON"))) SwitchOn = true; //1;
+	//else if((!strcmp(OnOrOff, "off")) || (!strcmp(OnOrOff, "Off")) || (!strcmp(OnOrOff, "OFF"))) SwitchOn = false; //0;
+	//else if((!strcmp(OnOrOff, "share")) || (!strcmp(OnOrOff, "Share")) || (!strcmp(OnOrOff, "SHARE"))) Share = true; //OC19032020
+	else { Send.ErrorMessage("Radia::Error043"); return 0; }
+
+	if(Share) //OC19032020
+	{
+		long rankFrom = 0, rankTo = -1;
+		if(pRankFrom != 0) rankFrom = *pRankFrom;
+		if(pRankTo != 0) rankTo = *pRankTo;
+
+		long arLong[] = {0};
+		if(m_rankMPI == rankFrom)
+		{
+			if((arData != 0) && (pnData != 0)) arLong[0] = *pnData;
+			else { Send.ErrorMessage("Radia::Error601"); return 0; } //?
+		}
+
+		//if((rankFrom == 0) && (rankTo < 0))
+		if(rankTo < 0) //Bcast to be used
+		{
+			if(MPI_Bcast(arLong, 1, MPI_LONG, rankFrom, MPI_COMM_WORLD) != MPI_SUCCESS) { Send.ErrorMessage("Radia::Error601"); return 0; }
+
+			//std::cout << "rank=" << m_rankMPI << " arLong[0]=" << arLong[0] << "\n"; //DEBUG
+			//std::cout.flush(); //DEBUG
+
+			long nData = *arLong;
+			*pnData = nData;
+			if(nData > 0)
+			{
+				double *arDataLoc = 0;
+				if(m_rankMPI != rankFrom)
+				{
+					arDataLoc = new double[nData];
+				}
+				else
+				{
+					arDataLoc = arData;
+				}
+
+				if(MPI_Bcast(arDataLoc, (int)nData, MPI_DOUBLE, rankFrom, MPI_COMM_WORLD) != MPI_SUCCESS)
+				{ 
+					Send.ErrorMessage("Radia::Error601"); 
+					if(m_rankMPI > 0) delete[] arDataLoc;
+					return 0; 
+				}
+
+				//std::cout << "rank=" << m_rankMPI << " arDataLoc[0]=" << arDataLoc[0] << " arDataLoc[1]=" << arDataLoc[1] << "\n"; //DEBUG
+				//std::cout.flush(); //DEBUG
+
+				int Dims[] = { nData };
+				Send.MultiDimArrayOfDouble(arDataLoc, Dims, 1); //Do this for all ranks, even if for m_rankMPI == rankFrom this is not necessary
+
+				if(m_rankMPI != rankFrom) delete[] arDataLoc;
+			}
+		}
+		else
+		{
+			if(m_rankMPI == rankFrom)
+			{
+				if(MPI_Send(arLong, 1, MPI_LONG, rankTo, 0, MPI_COMM_WORLD) != MPI_SUCCESS) { Send.ErrorMessage("Radia::Error601"); return 0; }
+			}
+			else if(m_rankMPI == rankTo)
+			{
+				int nAux = 1;
+				MPI_Status statMPI;
+				if(MPI_Recv(arLong, nAux, MPI_LONG, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &statMPI) != MPI_SUCCESS) { Send.ErrorMessage("Radia::Error601"); return 0; }
+			}
+
+			long nData = *arLong;
+			if(nData > 0)
+			{
+				double *arDataLoc = 0;
+				if(m_rankMPI != rankFrom)
+				{
+					arDataLoc = new double[nData];
+				}
+				else
+				{
+					arDataLoc = arData;
+				}
+
+				if(m_rankMPI == rankFrom)
+				{
+					if(MPI_Send(arDataLoc, (int)nData, MPI_DOUBLE, rankTo, 0, MPI_COMM_WORLD) != MPI_SUCCESS) { Send.ErrorMessage("Radia::Error601"); return 0; }
+				}
+				else if(m_rankMPI == rankTo)
+				{
+					MPI_Status statMPI;
+					if(MPI_Recv(arDataLoc, (int)nData, MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &statMPI) != MPI_SUCCESS)
+					{ 
+						Send.ErrorMessage("Radia::Error601"); 
+						delete[] arDataLoc;
+						return 0; 
+					}
+				}
+
+				int Dims[] = { (int)nData };
+				Send.MultiDimArrayOfDouble(arDataLoc, Dims, 1); //Do this for all ranks, even if for m_rankMPI == rankFrom and m_rankMPI != rankTo this is not necessary
+
+				if(m_rankMPI != rankFrom) delete[] arDataLoc;
+			}
+		}
+		//if(MPI_Bcast(arMagnVals, (int)nValsToSend, MPI_FLOAT, 0, MPI_COMM_WORLD) != MPI_SUCCESS) { Send.ErrorMessage("Radia::Error601"); if(arMagnVals != 0) delete[] arMagnVals; return 0; }
+	}
+	else if(Barrier) //OC29082020
+	{
+		if((m_nProcMPI > 0) && (m_rankMPI >= 0))
+		{
+			if(MPI_Barrier(MPI_COMM_WORLD) != MPI_SUCCESS) Send.ErrorMessage("Radia::Error601");
+		}
+	}
+	else
+	{
+		int arParMPI[] = {-1,0};
+		if(SwitchOn)
+		{
+			if(DoInit) //19122020
+				if(MPI_Init(NULL, NULL) != MPI_SUCCESS) { Send.ErrorMessage("Radia::Error601"); return 0;} // Initialize the MPI environment
+
+			if(MPI_Comm_size(MPI_COMM_WORLD, &m_nProcMPI) != MPI_SUCCESS) { Send.ErrorMessage("Radia::Error601"); return 0;} // Get the number of processes
+			if(MPI_Comm_rank(MPI_COMM_WORLD, &m_rankMPI) != MPI_SUCCESS) { Send.ErrorMessage("Radia::Error601"); return 0;} // Get the rank of the process
+			arParMPI[0] = m_rankMPI; arParMPI[1] = m_nProcMPI;
+
+			//std::cout << "rank=" << m_rankMPI << " num. proc.:" << m_nProcMPI << " recovered\n"; //DEBUG
+			//std::cout.flush(); //DEBUG
+
+			//MPI_Init(NULL, NULL); // Initialize the MPI environment
+			//MPI_Comm_size(MPI_COMM_WORLD, arParMPI + 1); // Get the number of processes
+			//MPI_Comm_rank(MPI_COMM_WORLD, arParMPI); // Get the rank of the process
+		}
+		else
+		{
+			MPI_Finalize(); // Finalize the MPI environment.
+		}
+
+		if(SendingIsRequired) Send.IntList(arParMPI, 2);
+		return 1;
+	}
+
+#else
+
+	Send.WarningMessage("Radia::Warning019"); return 1;
+	//Send.ErrorMessage("Radia::Error600"); return 0;
+
+#endif
+
+	//if(SendingIsRequired) Send.IntList(arParMPI, 2);
+	return 1;
 }
 
 //-------------------------------------------------------------------------
